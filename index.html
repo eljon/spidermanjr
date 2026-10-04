@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1230">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Snap a photo and watch a web shoot in to grab it for your collection shelf.">
+  <title>Spider-Man Jr.</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Night skyline backdrop -->
+  <svg class="city" viewBox="0 0 400 160" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <path d="M0 160V96h22V70h18v26h14V52h26v44h10V80h20v80zM110 160V60h12V40h20v20h12v100zM154 160V88h30V64h22v96zM206 160V30h8V18h16v12h8v130zM238 160V78h26v18h16V58h24v102zM304 160V92h18V66h30v94zM352 160V48h20v-12h10v12h18v112z"/>
+    <g class="windows">
+      <rect x="62" y="60" width="4" height="5"/><rect x="70" y="72" width="4" height="5"/><rect x="118" y="70" width="4" height="5"/>
+      <rect x="132" y="88" width="4" height="5"/><rect x="214" y="42" width="4" height="5"/><rect x="222" y="66" width="4" height="5"/>
+      <rect x="214" y="98" width="4" height="5"/><rect x="286" y="70" width="4" height="5"/><rect x="292" y="94" width="4" height="5"/>
+      <rect x="360" y="60" width="4" height="5"/><rect x="372" y="84" width="4" height="5"/><rect x="186" y="76" width="4" height="5"/>
+    </g>
+  </svg>
+
+  <div class="app">
+    <header class="topbar">
+      <h1 class="logo">
+        <svg class="emblem" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M27 26 14 18 10 6M27 30 10 26 4 16M27 36 10 40 4 52M28 40 15 50 12 60"/>
+            <path d="M37 26 50 18 54 6M37 30 54 26 60 16M37 36 54 40 60 52M36 40 49 50 52 60"/>
+          </g>
+          <ellipse cx="32" cy="24" rx="6" ry="7" fill="currentColor"/>
+          <ellipse cx="32" cy="40" rx="7.5" ry="11" fill="currentColor"/>
+        </svg>
+        <span>Spider-Man <em>Jr.</em></span>
+      </h1>
+      <button id="sound-toggle" class="icon-btn" type="button" aria-pressed="true" aria-label="Sound on">
+        <svg class="snd-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg class="snd-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="m16 9 6 6m0-6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+
+    <section class="shelf-zone" aria-labelledby="shelf-title">
+      <div class="shelf-head">
+        <h2 id="shelf-title">My Collection</h2>
+        <span id="count" class="count" aria-live="polite">0</span>
+      </div>
+      <div id="shelf" class="shelf">
+        <ul id="shelf-items" class="shelf-items"></ul>
+        <p id="shelf-empty" class="shelf-empty">Caught photos land here</p>
+      </div>
+    </section>
+
+    <main id="stage" class="stage">
+      <div id="empty" class="empty">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M50 50 50 4M50 50 90 27M50 50 90 73M50 50 50 96M50 50 10 73M50 50 10 27"/>
+            <path d="M50 18Q62 26 78 34Q74 50 78 66Q62 74 50 82Q38 74 22 66Q26 50 22 34Q38 26 50 18Z"/>
+            <path d="M50 32Q57 37 66 41Q64 50 66 59Q57 63 50 68Q43 63 34 59Q36 50 34 41Q43 37 50 32Z"/>
+          </g>
+        </svg>
+        <p>Snap a photo and watch the web grab it for your shelf!</p>
+      </div>
+    </main>
+
+    <footer class="controls">
+      <p id="status" class="status" role="status" aria-live="polite">Take or choose a photo to begin</p>
+      <div class="btn-row">
+        <label class="btn btn-red" id="camera-btn">
+          <input id="camera-input" type="file" accept="image/*" capture="environment">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          <span>Take Photo</span>
+        </label>
+        <label class="btn btn-blue" id="gallery-btn">
+          <input id="gallery-input" type="file" accept="image/*">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m4 17 5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="15.5" cy="9" r="1.6" fill="currentColor"/></svg>
+          <span>Choose Photo</span>
+        </label>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Web strands are drawn here in screen pixels -->
+  <svg id="web-layer" class="web-layer" aria-hidden="true">
+    <path id="strand-a" class="strand"/>
+    <path id="strand-b" class="strand thin"/>
+  </svg>
+  <div id="thwip" class="thwip" aria-hidden="true">THWIP!</div>
+
+  <dialog id="viewer" class="viewer">
+    <figure class="polaroid big">
+      <div class="ph"><img id="viewer-img" alt=""></div>
+      <figcaption id="viewer-cap" class="cap"></figcaption>
+    </figure>
+    <div class="viewer-actions">
+      <button id="viewer-remove" class="btn btn-ghost" type="button">Remove</button>
+      <button id="viewer-close" class="btn btn-blue" type="button">Close</button>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

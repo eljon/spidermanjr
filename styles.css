@@ -1,0 +1,556 @@
+:root {
+  --red: #e23636;
+  --red-dark: #9e1420;
+  --blue: #2350d8;
+  --blue-dark: #12297a;
+  --night: #0b1230;
+  --night-2: #1b1446;
+  --text: #f4f6ff;
+  --muted: #aab4da;
+  --paper: #fbf7ec;
+  --wall: #1a1d3d;
+  --wood: #8a5228;
+  --wood-light: #b06d36;
+  --wood-dark: #4a2a10;
+  --yellow: #ffd23f;
+  --comic: "Bangers", "Impact", "Arial Black", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(120% 60% at 80% 0%, rgba(226, 54, 54, 0.22), transparent 60%),
+    radial-gradient(90% 50% at 0% 30%, rgba(35, 80, 216, 0.28), transparent 70%),
+    linear-gradient(180deg, var(--night) 0%, var(--night-2) 100%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button { font: inherit; color: inherit; }
+
+/* ---------- Backdrop ---------- */
+
+.city {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 32vh;
+  fill: #070b22;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.city .windows rect { fill: #ffd86b; opacity: 0.55; }
+
+/* ---------- Layout ---------- */
+
+.app {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  padding:
+    max(env(safe-area-inset-top), 8px)
+    max(env(safe-area-inset-right), 16px)
+    max(env(safe-area-inset-bottom), 12px)
+    max(env(safe-area-inset-left), 16px);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0 10px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--comic);
+  font-weight: 400;
+  font-size: clamp(1.7rem, 7.5vw, 2.2rem);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--red);
+  text-shadow:
+    2px 2px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    0 4px 14px rgba(226, 54, 54, 0.45);
+}
+.logo em {
+  font-style: normal;
+  color: var(--text);
+}
+.emblem {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  color: #000;
+  background: var(--red);
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 0 0 2px #000, 0 4px 12px rgba(226, 54, 54, 0.5);
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn .snd-off { display: none; }
+.icon-btn[aria-pressed="false"] .snd-on { display: none; }
+.icon-btn[aria-pressed="false"] .snd-off { display: block; }
+
+/* ---------- Polaroid (shared by stage card, shelf items, viewer) ---------- */
+/* Every dimension derives from --w so a card can be scaled uniformly onto a shelf slot. */
+
+.polaroid {
+  --w: 64px;
+  display: block;
+  width: var(--w);
+  margin: 0;
+  padding: calc(var(--w) * 0.05) calc(var(--w) * 0.05) 0;
+  background: var(--paper);
+  border: 0;
+  border-radius: calc(var(--w) * 0.02);
+  box-shadow: 0 calc(var(--w) * 0.03) calc(var(--w) * 0.06) rgba(0, 0, 0, 0.45);
+  color: #3a2f2a;
+}
+.polaroid .ph {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: #1c1c24;
+}
+.polaroid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.polaroid .cap {
+  display: block;
+  height: calc(var(--w) * 0.16);
+  font-family: var(--comic);
+  font-size: calc(var(--w) * 0.085);
+  line-height: calc(var(--w) * 0.16);
+  letter-spacing: 0.06em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ---------- Shelf (sits behind the stage) ---------- */
+
+.shelf-zone {
+  position: relative;
+  z-index: 1;
+}
+.shelf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 6px;
+}
+.shelf-head h2 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.count {
+  min-width: 28px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--comic);
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  text-align: center;
+  box-shadow: 0 0 0 2px #000;
+}
+.count.bump { animation: bump 420ms cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.45); background: var(--yellow); color: #000; }
+  100% { transform: scale(1); }
+}
+
+.shelf {
+  position: relative;
+  height: 128px;
+  border-radius: 14px 14px 6px 6px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 38px),
+    linear-gradient(180deg, #121433 0%, var(--wall) 100%);
+  box-shadow:
+    inset 0 10px 24px rgba(0, 0, 0, 0.55),
+    inset 0 -30px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+/* The plank */
+.shelf::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  background:
+    linear-gradient(180deg, var(--wood-light) 0 4px, var(--wood) 4px 11px, var(--wood-dark) 11px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.shelf-items {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  height: 100%;
+  margin: 0;
+  padding: 0 16px 14px;
+  list-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.shelf-items::-webkit-scrollbar { display: none; }
+
+.slot {
+  flex: none;
+  width: 64px;
+}
+.slot.pending { visibility: hidden; }
+.slot .polaroid {
+  --w: 64px;
+  cursor: pointer;
+  padding-bottom: 0;
+  transform: rotate(var(--tilt, 0deg));
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.55);
+}
+.slot .polaroid:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 3px;
+}
+
+.shelf-empty {
+  position: absolute;
+  inset: 0 0 16px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(170, 180, 218, 0.55);
+  pointer-events: none;
+}
+.shelf-empty[hidden] { display: none; }
+
+/* ---------- Stage ---------- */
+
+.stage {
+  position: relative;
+  z-index: 2;
+  container-type: size;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  margin-top: -34px; /* overlap the shelf so the photo reads as in front of it */
+  padding: 10px 0;
+}
+
+.empty {
+  width: min(78cqw, 320px);
+  max-height: 92cqh;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 24px 22px;
+  border: 2px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 18px;
+  background: rgba(10, 14, 40, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: var(--muted);
+  text-align: center;
+}
+.empty svg {
+  width: min(96px, 26cqh);
+  height: min(96px, 26cqh);
+  color: rgba(255, 255, 255, 0.5);
+}
+.empty p {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.4;
+}
+.empty[hidden] { display: none; }
+
+.card {
+  --w: min(68cqw, 300px, calc(90cqh / 1.335));
+  position: relative;
+  box-shadow:
+    0 24px 40px rgba(0, 0, 0, 0.55),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+}
+.card.enter { animation: card-in 520ms cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes card-in {
+  0% { transform: translateY(40px) scale(0.6) rotate(-8deg); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+.card.flying {
+  position: fixed;
+  z-index: 30;
+  margin: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  animation: none;
+}
+
+/* Spidey sense squiggles */
+.sense {
+  position: absolute;
+  inset: -16%;
+  width: 132%;
+  height: 132%;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+}
+.sense path {
+  fill: none;
+  stroke: var(--yellow);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(255, 210, 63, 0.8));
+}
+.card.tingle { animation: jitter 120ms linear infinite; }
+.card.tingle .sense { animation: tingle 260ms steps(2) infinite; }
+@keyframes tingle {
+  0% { opacity: 1; }
+  100% { opacity: 0.25; }
+}
+@keyframes jitter {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(1px, 1px); }
+}
+
+/* Web splat stuck to the photo on impact */
+.splat {
+  position: absolute;
+  left: 62%;
+  top: 30%;
+  width: 52%;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: visible;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.splat path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.6));
+}
+.card.hit .splat {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform 180ms cubic-bezier(.2, 1.6, .5, 1), opacity 80ms;
+}
+.card.landed .splat {
+  opacity: 0;
+  transition: opacity 260ms;
+}
+
+/* ---------- Web layer ---------- */
+
+.web-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 40;
+  pointer-events: none;
+  overflow: visible;
+}
+.strand {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(190, 220, 255, 0.85));
+}
+.strand.thin {
+  stroke-width: 1.2;
+  opacity: 0.8;
+}
+
+.thwip {
+  position: fixed;
+  right: 10px;
+  top: 0;
+  z-index: 41;
+  font-family: var(--comic);
+  font-size: 2.4rem;
+  letter-spacing: 0.06em;
+  color: var(--yellow);
+  -webkit-text-stroke: 2px #000;
+  text-shadow: 3px 3px 0 var(--red);
+  transform: rotate(-12deg) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.thwip.show { animation: thwip 700ms cubic-bezier(.2, 1.5, .4, 1) forwards; }
+@keyframes thwip {
+  0% { transform: rotate(-12deg) scale(0.2); opacity: 0; }
+  25% { transform: rotate(-12deg) scale(1.15); opacity: 1; }
+  70% { transform: rotate(-10deg) scale(1); opacity: 1; }
+  100% { transform: rotate(-8deg) scale(0.9) translateY(-14px); opacity: 0; }
+}
+
+/* ---------- Controls ---------- */
+
+.controls {
+  position: relative;
+  z-index: 3;
+  padding-top: 6px;
+}
+.status {
+  min-height: 1.4em;
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.status.alert { color: var(--yellow); }
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 56px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: clamp(0.88rem, 4vw, 1rem);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 120ms, opacity 200ms, filter 200ms;
+}
+.btn svg { width: 24px; height: 24px; flex: none; }
+.btn:active { transform: translateY(2px) scale(0.98); }
+.btn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.btn:focus-within {
+  outline: 3px solid var(--yellow);
+  outline-offset: 2px;
+}
+.btn-red {
+  background: linear-gradient(180deg, #f04848, var(--red-dark));
+  box-shadow: 0 4px 0 #5e0a12, 0 10px 20px rgba(226, 54, 54, 0.35);
+}
+.btn-blue {
+  background: linear-gradient(180deg, #3463ec, var(--blue-dark));
+  box-shadow: 0 4px 0 #0a1a52, 0 10px 20px rgba(35, 80, 216, 0.35);
+}
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.1);
+}
+.btn.is-disabled {
+  opacity: 0.45;
+  filter: saturate(0.4);
+  pointer-events: none;
+}
+
+/* ---------- Viewer ---------- */
+
+.viewer {
+  border: 0;
+  padding: 20px 16px;
+  background: transparent;
+  color: var(--text);
+  max-width: 100vw;
+  overflow: visible;
+}
+.viewer::backdrop {
+  background: rgba(5, 8, 25, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.viewer[open] { animation: card-in 380ms cubic-bezier(.2, 1.4, .4, 1); }
+.polaroid.big {
+  --w: min(82vw, 340px, 60vh);
+  margin: 0 auto;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+}
+.viewer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+.viewer-actions .btn { min-width: 120px; min-height: 48px; }
+
+@media (min-height: 760px) {
+  .shelf { height: 150px; }
+  .slot, .slot .polaroid { width: 80px; --w: 80px; }
+}
