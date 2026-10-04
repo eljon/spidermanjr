@@ -7,6 +7,7 @@
   const WAIT_BEFORE_GRAB_MS = 2000;
   const THUMB_W = 360;
   const THUMB_H = 450;
+  const VIDEO_THUMB_TIMEOUT_MS = 4000;
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -17,10 +18,8 @@
     list: $('#shelf-items'),
     shelfEmpty: $('#shelf-empty'),
     count: $('#count'),
-    cameraInput: $('#camera-input'),
-    galleryInput: $('#gallery-input'),
-    cameraBtn: $('#camera-btn'),
-    galleryBtn: $('#gallery-btn'),
+    captureInput: $('#capture-input'),
+    emptyHint: $('#empty-hint'),
     webLayer: $('#web-layer'),
     strandA: $('#strand-a'),
     strandB: $('#strand-b'),
@@ -28,6 +27,7 @@
     soundBtn: $('#sound-toggle'),
     viewer: $('#viewer'),
     viewerImg: $('#viewer-img'),
+    viewerVideo: $('#viewer-video'),
     viewerCap: $('#viewer-cap'),
     viewerRemove: $('#viewer-remove'),
     viewerClose: $('#viewer-close'),
@@ -66,6 +66,41 @@
       }
     }
   }
+
+  // Videos are too big for localStorage, so their files live in IndexedDB keyed by item id.
+  const mediaStore = (() => {
+    let dbPromise = null;
+
+    function open() {
+      if (!dbPromise) {
+        dbPromise = new Promise((resolve, reject) => {
+          const req = indexedDB.open('spidermanjr', 1);
+          req.onupgradeneeded = () => req.result.createObjectStore('media');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      return dbPromise;
+    }
+
+    async function run(mode, fn) {
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('media', mode);
+        const req = fn(tx.objectStore('media'));
+        tx.oncomplete = () => resolve(req.result);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+
+    const safe = (p) => p.catch(() => undefined);
+    return {
+      put: (id, blob) => safe(run('readwrite', (st) => st.put(blob, id))),
+      get: (id) => safe(run('readonly', (st) => st.get(id))),
+      remove: (id) => safe(run('readwrite', (st) => st.delete(id))),
+    };
+  })();
 
   function loadSound() {
     try {
@@ -114,10 +149,7 @@
   }
 
   function setControlsEnabled(enabled) {
-    els.cameraInput.disabled = !enabled;
-    els.galleryInput.disabled = !enabled;
-    els.cameraBtn.classList.toggle('is-disabled', !enabled);
-    els.galleryBtn.classList.toggle('is-disabled', !enabled);
+    els.captureInput.disabled = !enabled;
   }
 
   function vibrate(pattern) {
@@ -250,9 +282,9 @@
     li.dataset.id = item.id;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'polaroid';
+    btn.className = item.type === 'video' ? 'polaroid is-video' : 'polaroid';
     btn.style.setProperty('--tilt', `${tiltFor(item.n)}deg`);
-    btn.setAttribute('aria-label', `Open photo number ${item.n}`);
+    btn.setAttribute('aria-label', `Open ${item.type === 'video' ? 'video' : 'photo'} number ${item.n}`);
     const ph = document.createElement('span');
     ph.className = 'ph';
     const img = document.createElement('img');
@@ -288,28 +320,78 @@
     });
   }
 
+  // Resolves once the video has a frame ready to draw.
+  function loadVideo(url) {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.onloadeddata = () => resolve(video);
+      video.onerror = () => reject(new Error('Could not load video'));
+      video.src = url;
+      video.load();
+    });
+  }
+
   // Center-crop to the polaroid's 4:5 window, matching object-fit: cover on the card.
-  function makeThumb(img) {
+  function makeThumb(source, srcW, srcH) {
     const canvas = document.createElement('canvas');
     canvas.width = THUMB_W;
     canvas.height = THUMB_H;
     const ctx = canvas.getContext('2d');
-    const s = Math.max(THUMB_W / img.naturalWidth, THUMB_H / img.naturalHeight);
-    const w = img.naturalWidth * s;
-    const h = img.naturalHeight * s;
-    ctx.drawImage(img, (THUMB_W - w) / 2, (THUMB_H - h) / 2, w, h);
+    ctx.fillStyle = '#1c1c24';
+    ctx.fillRect(0, 0, THUMB_W, THUMB_H);
+    if (srcW && srcH) {
+      const s = Math.max(THUMB_W / srcW, THUMB_H / srcH);
+      const w = srcW * s;
+      const h = srcH * s;
+      ctx.drawImage(source, (THUMB_W - w) / 2, (THUMB_H - h) / 2, w, h);
+    }
     return canvas.toDataURL('image/jpeg', 0.82);
   }
 
-  function createCard(src, n) {
+  // Grab a frame a little way into the clip (the very first frame is often black).
+  async function makeVideoThumb(video) {
+    const frameAt = Math.min(0.5, (video.duration || 0) / 2);
+    if (frameAt > 0) {
+      await Promise.race([
+        new Promise((r) => {
+          video.onseeked = r;
+          video.currentTime = frameAt;
+        }),
+        wait(VIDEO_THUMB_TIMEOUT_MS),
+      ]);
+    }
+    try {
+      return makeThumb(video, video.videoWidth, video.videoHeight);
+    } catch {
+      return makeThumb(null, 0, 0);
+    }
+  }
+
+  const isVideoFile = (file) =>
+    file.type.startsWith('video/') || /\.(mov|mp4|m4v|webm|3gp|mkv)$/i.test(file.name || '');
+
+  function createCard(src, n, isVideo) {
     const fig = document.createElement('figure');
     fig.className = 'polaroid card enter';
+    const media = isVideo
+      ? '<video muted autoplay loop playsinline></video>'
+      : '<img alt="Your photo">';
     fig.innerHTML =
-      '<div class="ph"><img alt="Your photo"></div>' +
+      `<div class="ph">${media}</div>` +
       '<figcaption class="cap"></figcaption>' +
       `<svg class="sense" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${SENSE_D}"/></svg>` +
       `<svg class="splat" viewBox="-50 -50 100 100" aria-hidden="true"><path d="${SPLAT_D}"/></svg>`;
-    fig.querySelector('img').src = src;
+    if (isVideo) {
+      const video = fig.querySelector('video');
+      video.muted = true;
+      video.src = src;
+      video.play().catch(() => {});
+    } else {
+      fig.querySelector('img').src = src;
+    }
     fig.querySelector('.cap').textContent = `No. ${pad(n)}`;
     return fig;
   }
@@ -319,24 +401,32 @@
     state.busy = true;
     setControlsEnabled(false);
 
+    const isVideo = isVideoFile(file);
+    const kind = isVideo ? 'video' : 'photo';
     const url = URL.createObjectURL(file);
-    let img;
+    let thumb;
     try {
-      img = await loadImage(url);
+      if (isVideo) {
+        thumb = await makeVideoThumb(await loadVideo(url));
+      } else {
+        const img = await loadImage(url);
+        thumb = makeThumb(img, img.naturalWidth, img.naturalHeight);
+      }
     } catch {
       URL.revokeObjectURL(url);
-      setStatus("Hmm, that photo couldn't be opened. Try another one.", true);
+      setStatus(`Hmm, that ${kind} couldn't be opened. Try again.`, true);
       state.busy = false;
       setControlsEnabled(true);
       return;
     }
 
     const n = nextNumber();
-    const thumb = makeThumb(img);
-    const card = createCard(url, n);
+    const item = { id: `${Date.now()}-${n}`, n, src: thumb, type: kind };
+    const saved = isVideo ? mediaStore.put(item.id, file) : Promise.resolve();
+    const card = createCard(url, n, isVideo);
     els.empty.hidden = true;
     els.stage.append(card);
-    setStatus('Nice shot! Hold still...');
+    setStatus(isVideo ? 'Great clip! Hold still...' : 'Nice shot! Hold still...');
 
     await wait(WAIT_BEFORE_GRAB_MS - 700);
     card.classList.add('tingle');
@@ -345,11 +435,12 @@
     await wait(700);
     card.classList.remove('tingle');
 
-    await webGrab(card, { id: `${Date.now()}-${n}`, n, src: thumb });
+    await webGrab(card, item);
+    await saved;
 
     URL.revokeObjectURL(url);
     els.empty.hidden = false;
-    els.empty.querySelector('p').textContent = 'Got it! Snap another one for your shelf.';
+    els.emptyHint.textContent = 'Got it! Take another one for your shelf.';
     setStatus(`Caught No. ${pad(n)}! It's on your shelf.`);
     state.busy = false;
     setControlsEnabled(true);
@@ -480,7 +571,7 @@
 
     // Hand off to the real shelf item, which sits exactly where the card landed.
     state.items.unshift(item);
-    if (state.items.length > MAX_ITEMS) state.items.length = MAX_ITEMS;
+    for (const old of state.items.splice(MAX_ITEMS)) mediaStore.remove(old.id);
     saveItems();
     renderShelf();
     card.remove();
@@ -491,32 +582,48 @@
 
   // ---------- Viewer ----------
 
-  function openViewer(id) {
+  async function openViewer(id) {
     const item = state.items.find((it) => it.id === id);
     if (!item) return;
     state.viewingId = id;
+    const label = `${item.type === 'video' ? 'Video' : 'Photo'} number ${item.n}`;
     els.viewerImg.src = item.src;
-    els.viewerImg.alt = `Photo number ${item.n}`;
+    els.viewerImg.alt = label;
+    els.viewerImg.hidden = false;
+    els.viewerVideo.hidden = true;
     els.viewerCap.textContent = `No. ${pad(item.n)}`;
     if (typeof els.viewer.showModal === 'function') els.viewer.showModal();
     else els.viewer.setAttribute('open', '');
+
+    if (item.type !== 'video') return;
+    const blob = await mediaStore.get(id);
+    if (!blob || state.viewingId !== id) return;
+    els.viewerVideo.src = URL.createObjectURL(blob);
+    els.viewerVideo.setAttribute('aria-label', label);
+    els.viewerVideo.hidden = false;
+    els.viewerImg.hidden = true;
+    els.viewerVideo.play().catch(() => {});
   }
 
   function closeViewer() {
     state.viewingId = null;
+    els.viewerVideo.pause();
+    if (els.viewerVideo.src) {
+      URL.revokeObjectURL(els.viewerVideo.src);
+      els.viewerVideo.removeAttribute('src');
+      els.viewerVideo.load();
+    }
     if (typeof els.viewer.close === 'function') els.viewer.close();
     else els.viewer.removeAttribute('open');
   }
 
   // ---------- Wiring ----------
 
-  for (const input of [els.cameraInput, els.galleryInput]) {
-    input.addEventListener('change', () => {
-      const file = input.files && input.files[0];
-      input.value = '';
-      handleFile(file);
-    });
-  }
+  els.captureInput.addEventListener('change', () => {
+    const file = els.captureInput.files && els.captureInput.files[0];
+    els.captureInput.value = '';
+    handleFile(file);
+  });
 
   // Audio must be unlocked by a user gesture (tapping a button counts).
   document.addEventListener('pointerdown', () => sfx.unlock(), { passive: true });
@@ -541,10 +648,14 @@
   });
   els.viewerClose.addEventListener('click', closeViewer);
   els.viewerRemove.addEventListener('click', () => {
+    mediaStore.remove(state.viewingId);
     state.items = state.items.filter((it) => it.id !== state.viewingId);
     saveItems();
     renderShelf();
     closeViewer();
+  });
+  els.viewer.addEventListener('close', () => {
+    if (state.viewingId) closeViewer();
   });
   els.viewer.addEventListener('click', (e) => {
     if (e.target === els.viewer) closeViewer();

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1230">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Snap a photo and watch a web shoot in to grab it for your collection shelf.">
+  <meta name="description" content="Snap a photo or video and watch a web shoot in to grab it for your collection shelf.">
   <title>Spider-Man Jr.</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
@@ -54,37 +54,34 @@
       </div>
       <div id="shelf" class="shelf">
         <ul id="shelf-items" class="shelf-items"></ul>
-        <p id="shelf-empty" class="shelf-empty">Caught photos land here</p>
+        <p id="shelf-empty" class="shelf-empty">Caught photos and videos land here</p>
       </div>
     </section>
 
     <main id="stage" class="stage">
       <div id="empty" class="empty">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-            <path d="M50 50 50 4M50 50 90 27M50 50 90 73M50 50 50 96M50 50 10 73M50 50 10 27"/>
-            <path d="M50 18Q62 26 78 34Q74 50 78 66Q62 74 50 82Q38 74 22 66Q26 50 22 34Q38 26 50 18Z"/>
-            <path d="M50 32Q57 37 66 41Q64 50 66 59Q57 63 50 68Q43 63 34 59Q36 50 34 41Q43 37 50 32Z"/>
-          </g>
-        </svg>
-        <p>Snap a photo and watch the web grab it for your shelf!</p>
+        <label class="shutter" id="shutter">
+          <input id="capture-input" type="file" accept="image/*,video/*" capture="environment">
+          <span class="shutter-ring" aria-hidden="true">
+            <svg viewBox="0 0 100 100">
+              <g class="shutter-web" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                <path d="M50 50 50 6M50 50 88 28M50 50 88 72M50 50 50 94M50 50 12 72M50 50 12 28"/>
+                <path d="M50 22Q60 30 74 36Q71 50 74 64Q60 70 50 78Q40 70 26 64Q29 50 26 36Q40 30 50 22Z"/>
+              </g>
+              <g class="shutter-icon" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round">
+                <path d="M30 42h8l5-7h14l5 7h8v26H30z"/>
+                <circle cx="50" cy="54" r="8"/>
+              </g>
+            </svg>
+          </span>
+          <span class="shutter-label">Take Photo / Video</span>
+        </label>
+        <p id="empty-hint" class="empty-hint">Snap a photo or record a clip and watch the web grab it for your shelf!</p>
       </div>
     </main>
 
     <footer class="controls">
-      <p id="status" class="status" role="status" aria-live="polite">Take or choose a photo to begin</p>
-      <div class="btn-row">
-        <label class="btn btn-red" id="camera-btn">
-          <input id="camera-input" type="file" accept="image/*" capture="environment">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-          <span>Take Photo</span>
-        </label>
-        <label class="btn btn-blue" id="gallery-btn">
-          <input id="gallery-input" type="file" accept="image/*">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m4 17 5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="15.5" cy="9" r="1.6" fill="currentColor"/></svg>
-          <span>Choose Photo</span>
-        </label>
-      </div>
+      <p id="status" class="status" role="status" aria-live="polite">Tap the button to take a photo or video</p>
     </footer>
   </div>
 
@@ -97,7 +94,7 @@
 
   <dialog id="viewer" class="viewer">
     <figure class="polaroid big">
-      <div class="ph"><img id="viewer-img" alt=""></div>
+      <div class="ph"><img id="viewer-img" alt=""><video id="viewer-video" playsinline controls loop hidden></video></div>
       <figcaption id="viewer-cap" class="cap"></figcaption>
     </figure>
     <div class="viewer-actions">
