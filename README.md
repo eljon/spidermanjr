@@ -21,3 +21,5 @@ python3 -m http.server 8000
 ## Deploy
 
 Served by GitHub Pages straight from the branch root (`index.html`). The `.nojekyll` file tells Pages to serve the files as is.
+
+When you change `styles.css` or `app.js`, bump the `?v=` number on their links in `index.html` so browsers don't mix a new page with a cached old stylesheet or script.
